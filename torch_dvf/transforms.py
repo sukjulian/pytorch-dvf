@@ -10,14 +10,15 @@ class PointCloudHierarchy():
 
     Args:
         rel_sampling_ratios (tuple): relative ratios for successive farthest point sampling
-        cluster_radii (tuple): radii for spherical clusters
         interp_simplex (str): reference simplex for interpolation ('triangle' or 'tetrahedron')
+        cluster_radii(tuple, optional): radii for spherical clusters, estimated from first seen data if None (default: None)
     """
 
-    def __init__(self, rel_sampling_ratios: tuple, cluster_radii: tuple, interp_simplex: str):
+    def __init__(self, rel_sampling_ratios: tuple, interp_simplex: str, cluster_radii=None):
         self.rel_sampling_ratios = rel_sampling_ratios
-        self.cluster_radii = cluster_radii
         self.interp_simplex = interp_simplex
+
+        self.cluster_radii = cluster_radii if cluster_radii else [None] * len(rel_sampling_ratios)
 
         self.dim_interp_simplex = {'triangle': 2, 'tetrahedron': 3}[interp_simplex]
 
@@ -30,6 +31,10 @@ class PointCloudHierarchy():
 
             sampling_idcs = fps(pos, batch, ratio=sampling_ratio)  # takes some time but is worth it
 
+            if cluster_radius is None:
+                cluster_radius = self.estimate_cluster_radius(pos, pos[sampling_idcs], batch, batch[sampling_idcs])
+                self.cluster_radii[i] = cluster_radius
+
             pool_target, pool_source = radius(pos, pos[sampling_idcs], cluster_radius, batch, batch[sampling_idcs])
             interp_target, interp_source = knn(pos[sampling_idcs], pos, self.dim_interp_simplex + 1, batch[sampling_idcs], batch)
 
@@ -41,6 +46,12 @@ class PointCloudHierarchy():
             batch = batch[sampling_idcs]
 
         return Data(**data)
+
+    def estimate_cluster_radius(self, pos_source, pos_target, batch_source, batch_target):
+        k = {'triangle': 7, 'tetrahedron': 14}[self.interp_simplex]
+        target_idcs, source_idcs = knn(pos_source, pos_target, k, batch_source, batch_target)
+
+        return (pos_source[source_idcs] - pos_target[target_idcs]).norm(dim=1).quantile(0.75).item()
 
     def __repr__(self) -> str:
 
