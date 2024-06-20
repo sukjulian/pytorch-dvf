@@ -18,6 +18,7 @@ class PointCloudHierarchy():
         self.rel_sampling_ratios = rel_sampling_ratios
         self.interp_simplex = interp_simplex
 
+        self.cluster_radii_arg = cluster_radii  # for "__repr__()"
         self.cluster_radii = cluster_radii if cluster_radii else [None] * len(rel_sampling_ratios)
 
         self.dim_interp_simplex = {'triangle': 2, 'tetrahedron': 3}[interp_simplex]
@@ -58,7 +59,7 @@ class PointCloudHierarchy():
         repr_str = "{}(rel_sampling_ratios={}, cluster_radii={}, interp_simplex={})".format(
             self.__class__.__name__,
             self.rel_sampling_ratios,
-            self.cluster_radii,
+            self.cluster_radii_arg,
             self.interp_simplex
         )
 
