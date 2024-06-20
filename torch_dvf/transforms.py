@@ -1,3 +1,4 @@
+from typing import Tuple, Optional
 import torch_geometric as pyg
 from .data import Data
 import torch
@@ -9,12 +10,12 @@ class PointCloudHierarchy():
     Interpolation from the coarse to the fine scales. For correct batching, "torch_geometric.data.Data.__inc__()" has to be overridden.
 
     Args:
-        rel_sampling_ratios (tuple): relative ratios for successive farthest point sampling
+        rel_sampling_ratios (Tuple[float]): relative ratios for successive farthest point sampling
         interp_simplex (str): reference simplex for interpolation ('triangle' or 'tetrahedron')
-        cluster_radii(tuple, optional): radii for spherical clusters, estimated from first seen data if None (default: None)
+        cluster_radii (Tuple[float], optional): radii for spherical clusters, estimated from first seen data if None (default: None)
     """
 
-    def __init__(self, rel_sampling_ratios: tuple, interp_simplex: str, cluster_radii=None):
+    def __init__(self, rel_sampling_ratios: Tuple[float], interp_simplex: str, cluster_radii: Optional[Tuple[float]] = None):
         self.rel_sampling_ratios = rel_sampling_ratios
         self.interp_simplex = interp_simplex
 
@@ -56,11 +57,11 @@ class PointCloudHierarchy():
 
     def __repr__(self) -> str:
 
-        repr_str = "{}(rel_sampling_ratios={}, cluster_radii={}, interp_simplex={})".format(
+        repr_str = "{}(rel_sampling_ratios={}, interp_simplex={}, cluster_radii={})".format(
             self.__class__.__name__,
             self.rel_sampling_ratios,
-            self.cluster_radii_arg,
-            self.interp_simplex
+            self.interp_simplex,
+            self.cluster_radii_arg
         )
 
         return repr_str
