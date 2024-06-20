@@ -6,13 +6,12 @@ from torch_cluster import fps, radius, knn
 
 class PointCloudHierarchy():
     """Nested hierarchy of sub-sampled point clouds. Graph edges connect each coarse-scale point to a cluster of fine-scale points.
-    Barycentric interpolation from the coarse to the fine scales. For correct batching, "torch_geometric.data.Data.__inc__()" has to be
-    overridden.
+    Interpolation from the coarse to the fine scales. For correct batching, "torch_geometric.data.Data.__inc__()" has to be overridden.
 
     Args:
         rel_sampling_ratios (tuple): relative ratios for successive farthest point sampling
         cluster_radii (tuple): radii for spherical clusters
-        interp_simplex (str): reference simplex for barycentric interpolation ('triangle' or 'tetrahedron')
+        interp_simplex (str): reference simplex for interpolation ('triangle' or 'tetrahedron')
     """
 
     def __init__(self, rel_sampling_ratios: tuple, cluster_radii: tuple, interp_simplex: str):
@@ -45,7 +44,8 @@ class PointCloudHierarchy():
 
     def __repr__(self) -> str:
 
-        repr_str = "{self.__class__.__name__}(rel_sampling_ratios={}, cluster_radii={}, interp_simplex={})".format(
+        repr_str = "{}(rel_sampling_ratios={}, cluster_radii={}, interp_simplex={})".format(
+            self.__class__.__name__,
             self.rel_sampling_ratios,
             self.cluster_radii,
             self.interp_simplex
