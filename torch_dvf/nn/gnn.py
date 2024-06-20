@@ -1,6 +1,6 @@
 from torch_geometric.nn.conv import MessagePassing
 import torch
-from pointnet.data import Data
+from torch_dvf.data import Data
 from torch_scatter import scatter
 
 
