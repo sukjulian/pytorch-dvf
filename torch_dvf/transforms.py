@@ -6,7 +6,6 @@ import torch
 import torch_geometric as pyg
 
 from torch_cluster import fps, knn, radius
-from torch_geometric.utils import k_hop_subgraph, remove_self_loops, to_undirected
 
 from .data import Data
 
@@ -49,9 +48,7 @@ class RadiusPointCloudHierarchy:
             zip(self.rel_sampling_ratios, self.cluster_radii)
         ):
 
-            sampling_idcs = fps(
-                pos, batch, ratio=sampling_ratio
-            )  # takes some time but is worth it
+            sampling_idcs = fps(pos, batch, ratio=sampling_ratio)
 
             pool_target, pool_source = radius(
                 pos,
@@ -125,10 +122,6 @@ class SkeletonPointCloudHierarchy:
         self.max_num_neighbors = max_num_neighbors
 
         self.dim_interp_simplex = {"triangle": 2, "tetrahedron": 3}[interp_simplex]
-        self.cached_khops = {}
-
-    def _clean_khop_cache(self):
-        self.cached_khops = {}
 
     def _construct_nx_graph(
         self, centerline_edge_index: torch.tensor, edge_lengths: torch.tensor
@@ -153,9 +146,8 @@ class SkeletonPointCloudHierarchy:
         skeleton_edge_index: torch.tensor,
     ):
 
-        # Compute edge index between skeleton and surface
-        pool_target, pool_source = knn(skeleton_pos, pos, 1)
-        map_edge_index = torch.stack([pool_target, pool_source])
+        # Compute mapping from surface onto skeleton
+        _, skeleton_map = knn(skeleton_pos, pos, 1)
 
         # Precompute all-pair skeleton distance LUT
         edge_lengths = torch.linalg.norm(
@@ -167,40 +159,26 @@ class SkeletonPointCloudHierarchy:
         ).to_undirected()
         dist_LUT = torch.tensor(nx.floyd_warshall_numpy(nx_graph, weight="edge_length"))
 
-        return dist_LUT, map_edge_index
-
-    def _collect_edge_index(self, index: torch.tensor, edge_index: torch.tensor):
-        if index.item() not in self.cached_khops.keys():
-            _, edge_index, _, _ = k_hop_subgraph(index.reshape(1), 2, edge_index)
-            self.cached_khops[index.item()] = remove_self_loops(edge_index)[0]
-
-        return self.cached_khops[index.item()]
+        return dist_LUT, skeleton_map
 
     def _get_pooling_scale(
         self,
         dist_LUT: torch.tensor,
-        map_edge_index: torch.tensor,
+        skeleton_map: torch.tensor,
         sampling_idcs: torch.tensor,
         cluster_dist: float,
+        batch: torch.tensor,
     ):
-        self._clean_khop_cache()
+        skeleton_adj = dist_LUT <= cluster_dist
 
-        skeleton_adj_edge_index = torch.argwhere(dist_LUT <= cluster_dist).T
-
-        # Assemble homogenous graph
-        num_nodes = map_edge_index.size(1)
-        map_edge_index[1] += num_nodes
-        adj_edge_index = to_undirected(
-            torch.cat([skeleton_adj_edge_index + num_nodes, map_edge_index], -1)
-        )
-
-        # Sample 2-hop neighbourhoods (discarding supporting skeleton edges)
         pool_edge_index = []
+
         for i, sampling_idc in enumerate(sampling_idcs):
-            skeleton_sampling_idc = map_edge_index[1][sampling_idc]
-            edge_index = self._collect_edge_index(skeleton_sampling_idc, adj_edge_index)
-            pool_source = edge_index[0]
-            pool_source = pool_source[pool_source < num_nodes]
+            skeleton_sampling_idc = skeleton_map[sampling_idc]
+
+            sampling_idc_ego = torch.argwhere(skeleton_adj[skeleton_sampling_idc])
+            pool_source = torch.argwhere(torch.isin(skeleton_map, sampling_idc_ego))
+            pool_source = pool_source[batch[pool_source] == batch[sampling_idc]]
 
             if (
                 self.max_num_neighbors is not None
@@ -220,7 +198,7 @@ class SkeletonPointCloudHierarchy:
         skeleton_pos = data.skeleton_pos
         skeleton_edge_index = data.skeleton_edge_index
 
-        dist_LUT, map_edge_index = self._skeleton_distance_LUT(
+        dist_LUT, skeleton_map = self._skeleton_distance_LUT(
             pos, skeleton_pos, skeleton_edge_index
         )
         batch = (
@@ -232,12 +210,10 @@ class SkeletonPointCloudHierarchy:
         for i, (sampling_ratio, cluster_dist) in enumerate(
             zip(self.rel_sampling_ratios, self.cluster_dists)
         ):
-            sampling_idcs = fps(
-                pos, batch, ratio=sampling_ratio
-            )  # takes some time but is worth it
+            sampling_idcs = fps(pos, batch, ratio=sampling_ratio)
 
             pool_target, pool_source = self._get_pooling_scale(
-                dist_LUT, map_edge_index, sampling_idcs, cluster_dist
+                dist_LUT, skeleton_map, sampling_idcs, cluster_dist, batch
             )
             interp_target, interp_source = knn(
                 pos[sampling_idcs],
@@ -259,6 +235,7 @@ class SkeletonPointCloudHierarchy:
 
             pos = pos[sampling_idcs]
             batch = batch[sampling_idcs]
+            skeleton_map = skeleton_map[sampling_idcs]
 
         return Data(**data)
 
@@ -325,9 +302,7 @@ class GeodesicPointCloudHierarchy:
             zip(self.rel_sampling_ratios, self.cluster_dists)
         ):
 
-            sampling_idcs = fps(
-                pos, batch, ratio=sampling_ratio
-            )  # takes some time but is worth it
+            sampling_idcs = fps(pos, batch, ratio=sampling_ratio)
 
             pool_target, pool_source = self._get_pooling_scale(
                 pos, sampling_idcs, cluster_dist

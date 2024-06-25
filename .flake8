@@ -1,4 +1,6 @@
 [flake8]
+max-complexity = 18
+max-line-length = 120
 extend_exclude = 
     .venv/, 
     build/, 
@@ -9,6 +11,7 @@ per_file_ignores =
     tests/*.py:D, 
     *.pyi:D,
 ignore = 
+    C901, # Function is too complex
     D, # pydocstyle
     E, # pydocstyle
     W, # pydocstyle
