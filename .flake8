@@ -1,0 +1,15 @@
+[flake8]
+extend_exclude = 
+    .venv/, 
+    build/, 
+    dist/, 
+    docs/,
+per_file_ignores = 
+    **/_[a-z]*.py:D, 
+    tests/*.py:D, 
+    *.pyi:D,
+ignore = 
+    D, # pydocstyle
+    E, # pydocstyle
+    W, # pydocstyle
+ignore_decorators = property # https://github.com/PyCQA/pydocstyle/pull/546
