@@ -137,7 +137,7 @@ class SkeletonPointCloudHierarchy:
         }
         nx.set_edge_attributes(graph, edge_lengths_dict, "edge_length")
 
-        return graph
+        return graph.to_undirected()
 
     def _skeleton_distance_LUT(
         self,
@@ -154,9 +154,7 @@ class SkeletonPointCloudHierarchy:
             skeleton_pos[skeleton_edge_index[0]] - skeleton_pos[skeleton_edge_index[1]],
             dim=1,
         )
-        nx_graph = self._construct_nx_graph(
-            skeleton_edge_index, edge_lengths
-        ).to_undirected()
+        nx_graph = self._construct_nx_graph(skeleton_edge_index, edge_lengths)
         dist_LUT = torch.tensor(nx.floyd_warshall_numpy(nx_graph, weight="edge_length"))
 
         return dist_LUT, skeleton_map
