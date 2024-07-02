@@ -49,7 +49,7 @@ class PointCloudHierarchy():
 
         return Data(**data)
 
-    def estimate_cluster_radius(self, pos_source, pos_target, batch_source, batch_target):
+    def estimate_cluster_radius(self, pos_source, pos_target, batch_source, batch_target) -> float:
         k = {'triangle': 7, 'tetrahedron': 14}[self.interp_simplex]
         target_idcs, source_idcs = knn(pos_source, pos_target, k, batch_source, batch_target)
 
