@@ -1,6 +1,4 @@
 [flake8]
-max-complexity = 18
-max-line-length = 120
 extend_exclude = 
     .venv/, 
     build/, 
@@ -10,9 +8,11 @@ per_file_ignores =
     **/_[a-z]*.py:D, 
     tests/*.py:D, 
     *.pyi:D,
-ignore = 
-    C901, # Function is too complex
-    D, # pydocstyle
-    E, # pydocstyle
-    W, # pydocstyle
+ignore =
+    # pydocstyle
+    D,
+    # pydocstyle
+    E,
+    # pydocstyle
+    W,
 ignore_decorators = property # https://github.com/PyCQA/pydocstyle/pull/546

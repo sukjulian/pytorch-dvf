@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import networkx as nx
 import torch
@@ -11,31 +11,33 @@ from .data import Data
 
 class RadiusPointCloudHierarchy:
     """Nested hierarchy of sub-sampled point clouds. Graph edges connect each coarse-scale point to a cluster of fine-scale points.
-    Barycentric interpolation from the coarse to the fine scales. For correct batching, "torch_geometric.data.Data.__inc__()" has to be
-    overridden.
+    Interpolation from the coarse to the fine scales. For correct batching, "torch_geometric.data.Data.__inc__()" has to be overridden.
 
     Args:
-        rel_sampling_ratios (tuple): relative ratios for successive farthest point sampling
-        cluster_radii (tuple): radii for spherical clusters
-        interp_simplex (str): reference simplex for barycentric interpolation ('triangle' or 'tetrahedron')
+        rel_sampling_ratios (Tuple[float]): relative ratios for successive farthest point sampling
+        interp_simplex (str): reference simplex for interpolation ('triangle' or 'tetrahedron')
+        cluster_radii (Tuple[float], optional): radii for spherical clusters, estimated from first seen data if None (default: None)
     """
 
     def __init__(
         self,
-        rel_sampling_ratios: tuple,
-        cluster_radii: tuple,
+        rel_sampling_ratios: Tuple[float],
         interp_simplex: str,
+        cluster_radii: Optional[Tuple[float]] = None,
         max_num_neighbors: int = 32,
     ):
         self.rel_sampling_ratios = rel_sampling_ratios
-        self.cluster_radii = cluster_radii
         self.interp_simplex = interp_simplex
         self.max_num_neighbors = max_num_neighbors
+
+        self.cluster_radii_arg = cluster_radii  # for "__repr__()"
+        self.cluster_radii = (
+            cluster_radii if cluster_radii else [None] * len(rel_sampling_ratios)
+        )
 
         self.dim_interp_simplex = {"triangle": 2, "tetrahedron": 3}[interp_simplex]
 
     def __call__(self, data: pyg.data.Data) -> Data:
-
         pos = data.pos
         batch = (
             data.surface_id.long()
@@ -46,8 +48,15 @@ class RadiusPointCloudHierarchy:
         for i, (sampling_ratio, cluster_radius) in enumerate(
             zip(self.rel_sampling_ratios, self.cluster_radii)
         ):
+            sampling_idcs = fps(
+                pos, batch, ratio=sampling_ratio
+            )  # takes some time but is worth it
 
-            sampling_idcs = fps(pos, batch, ratio=sampling_ratio)
+            if cluster_radius is None:
+                cluster_radius = self.estimate_cluster_radius(
+                    pos, pos[sampling_idcs], batch, batch[sampling_idcs]
+                )
+                self.cluster_radii[i] = cluster_radius
 
             pool_target, pool_source = radius(
                 pos,
@@ -80,15 +89,28 @@ class RadiusPointCloudHierarchy:
 
         return Data(**data)
 
-    def __repr__(self) -> str:
+    def estimate_cluster_radius(
+        self, pos_source, pos_target, batch_source, batch_target
+    ) -> float:
+        k = {"triangle": 7, "tetrahedron": 14}[self.interp_simplex]
+        target_idcs, source_idcs = knn(
+            pos_source, pos_target, k, batch_source, batch_target
+        )
 
-        repr_str = (
-            "{}(rel_sampling_ratios={}, cluster_radii={}, interp_simplex={})".format(
-                self.__class__.__name__,
-                self.rel_sampling_ratios,
-                self.cluster_radii,
-                self.interp_simplex,
-            )
+        return (
+            (pos_source[source_idcs] - pos_target[target_idcs])
+            .norm(dim=1)
+            .quantile(0.75)
+            .item()
+        )
+
+    def __repr__(self) -> str:
+        repr_str = "{}(rel_sampling_ratios={}, interp_simplex={}, cluster_radii={}, max_num_neighbors={})".format(
+            self.__class__.__name__,
+            self.rel_sampling_ratios,
+            self.interp_simplex,
+            self.cluster_radii,
+            self.max_num_neighbors,
         )
 
         return repr_str
@@ -144,7 +166,6 @@ class SkeletonPointCloudHierarchy:
         skeleton_pos: torch.tensor,
         skeleton_edge_index: torch.tensor,
     ):
-
         # Compute mapping from surface onto skeleton
         _, skeleton_map = knn(skeleton_pos, pos, 1)
 
@@ -237,7 +258,6 @@ class SkeletonPointCloudHierarchy:
         return Data(**data)
 
     def __repr__(self) -> str:
-
         repr_str = (
             "{}(rel_sampling_ratios={}, cluster_dists={}, interp_simplex={})".format(
                 self.__class__.__name__,
