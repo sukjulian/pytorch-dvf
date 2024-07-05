@@ -50,9 +50,9 @@ class PointCloudHierarchy(ABC):
         return state
 
     @abstractmethod
-    def _get_hierarchy(
+    def _get_cluster(
         self, scale_id: int, sampling_idcs: torch.Tensor, **kwargs
-    ) -> Union[torch.Tensor]:
+    ) -> Tuple[torch.Tensor]:
         pass
 
     def __call__(self, data: pyg.data.Data) -> Data:
@@ -62,7 +62,7 @@ class PointCloudHierarchy(ABC):
             pos, batch = state_dict["pos"], state_dict["batch"]
             sampling_idcs = fps(pos, batch, ratio=rel_sampling_ratio)
 
-            pool_target, pool_source = self._get_hierarchy(
+            pool_target, pool_source = self._get_cluster(
                 scale_id, sampling_idcs, **state_dict
             )
             interp_target, interp_source = knn(
@@ -100,6 +100,7 @@ class RadiusPointCloudHierarchy(PointCloudHierarchy):
         rel_sampling_ratios (Tuple[float]): relative ratios for successive farthest point sampling
         interp_simplex (str): reference simplex for interpolation ('triangle' or 'tetrahedron')
         cluster_radii (Tuple[float], optional): radii for spherical clusters, estimated from first seen data if None (default: None)
+        max_num_neighbors (int): The maximum number of neighbors to return for each sampled element
     """
 
     def __init__(
@@ -117,14 +118,14 @@ class RadiusPointCloudHierarchy(PointCloudHierarchy):
             cluster_radii if cluster_radii else [None] * len(rel_sampling_ratios)
         )
 
-    def _get_hierarchy(
+    def _get_cluster(
         self,
         scale_id: int,
         sampling_idcs: torch.Tensor,
         pos: torch.tensor,
         batch: torch.Tensor,
         **kwargs,
-    ) -> Union[torch.Tensor]:
+    ) -> Tuple[torch.Tensor]:
 
         cluster_radius = self.cluster_radii[scale_id]
 
@@ -180,6 +181,7 @@ class SkeletonPointCloudHierarchy(PointCloudHierarchy):
         rel_sampling_ratios (tuple): relative ratios for successive farthest point sampling
         cluster_dists (tuple): centerline distances for clusters
         interp_simplex (str): reference simplex for barycentric interpolation ('triangle' or 'tetrahedron')
+        max_num_neighbors (int, optional): The maximum number of neighbors to return for each sampled element, return all if None (default: None)
     """
 
     def __init__(
@@ -245,7 +247,7 @@ class SkeletonPointCloudHierarchy(PointCloudHierarchy):
 
         return state
 
-    def _get_hierarchy(
+    def _get_cluster(
         self,
         scale_id: int,
         sampling_idcs: torch.Tensor,
@@ -281,13 +283,12 @@ class SkeletonPointCloudHierarchy(PointCloudHierarchy):
         return torch.cat(pool_edge_index, -1)
 
     def __repr__(self) -> str:
-        repr_str = (
-            "{}(rel_sampling_ratios={}, cluster_dists={}, interp_simplex={})".format(
-                self.__class__.__name__,
-                self.rel_sampling_ratios,
-                self.cluster_dists,
-                self.interp_simplex,
-            )
+        repr_str = "{}(rel_sampling_ratios={}, cluster_dists={}, interp_simplex={}, max_num_neighbors={})".format(
+            self.__class__.__name__,
+            self.rel_sampling_ratios,
+            self.cluster_dists,
+            self.interp_simplex,
+            self.max_num_neighbors,
         )
 
         return repr_str
