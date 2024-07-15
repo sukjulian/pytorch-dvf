@@ -9,6 +9,7 @@ class MLP(torch.nn.Module):
         num_channels: tuple,
         plain_last: bool = True,
         use_norm_in_first: bool = True,
+        use_running_stats_in_norm: bool = False,
     ):
         super().__init__()
 
@@ -18,7 +19,7 @@ class MLP(torch.nn.Module):
 
         self.linear_layers.append(Linear(*num_channels[:2]))
         self.norm_layers.append(
-            BatchNorm1d(num_channels[1], track_running_stats=False)
+            BatchNorm1d(num_channels[1], track_running_stats=use_running_stats_in_norm)
             if use_norm_in_first
             else Identity()
         )
@@ -29,7 +30,9 @@ class MLP(torch.nn.Module):
         ):
             self.linear_layers.append(Linear(num_channels_in, num_channels_out))
             self.norm_layers.append(
-                BatchNorm1d(num_channels_out, track_running_stats=False)
+                BatchNorm1d(
+                    num_channels_out, track_running_stats=use_running_stats_in_norm
+                )
             )
             self.activations.append(ReLU())
 
@@ -40,7 +43,9 @@ class MLP(torch.nn.Module):
             self.activations.append(Identity())
         else:
             self.norm_layers.append(
-                BatchNorm1d(num_channels[-1], track_running_stats=False)
+                BatchNorm1d(
+                    num_channels[-1], track_running_stats=use_running_stats_in_norm
+                )
             )
             self.activations.append(ReLU())
 

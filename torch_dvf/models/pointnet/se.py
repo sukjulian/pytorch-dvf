@@ -6,10 +6,10 @@ from torch_dvf.models import architectures
 from torch_dvf.nn.gnn import PointCloudPooling
 from torch_dvf.nn.mlp.se import SEMLP
 
+
 """
 The following class (BalancedIrreps) is copied from "E(3) Steerable GNN" on GitHub (https://github.com/RobDHess/Steerable-E3-GNN).
 """
-
 
 def BalancedIrreps(lmax, vec_dim, sh_type=True):
     """Allocates irreps equally along channel budget, resulting

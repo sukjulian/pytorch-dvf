@@ -12,6 +12,7 @@ class PointNet(architectures.PointNet):
         num_output_channels: int,
         num_hierarchies: int,
         num_latent_channels: int,
+        use_running_stats_in_norm: bool = False,
     ):
 
         point_cloud_pooling_layers = torch.nn.ModuleList()
@@ -23,6 +24,7 @@ class PointNet(architectures.PointNet):
                     (num_input_channels + 3, num_latent_channels, num_latent_channels),
                     plain_last=False,
                     use_norm_in_first=False,
+                    use_running_stats_in_norm=use_running_stats_in_norm,
                 )
             )
         )
@@ -35,6 +37,7 @@ class PointNet(architectures.PointNet):
                     num_output_channels,
                 ),
                 use_norm_in_first=False,
+                use_running_stats_in_norm=use_running_stats_in_norm,
             ),
         )
 
@@ -48,6 +51,7 @@ class PointNet(architectures.PointNet):
                             num_latent_channels,
                         ),
                         plain_last=False,
+                        use_running_stats_in_norm=use_running_stats_in_norm,
                     )
                 )
             )
@@ -58,7 +62,8 @@ class PointNet(architectures.PointNet):
                         2 * num_latent_channels,
                         *[num_latent_channels] * 2,
                         num_latent_channels,
-                    )
+                    ),
+                    use_running_stats_in_norm=use_running_stats_in_norm,
                 ),
             )
 

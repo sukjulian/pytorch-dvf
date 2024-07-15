@@ -35,7 +35,6 @@ The following classes (O3TensorProduct and O3SwishGate) are copied and adapted f
 (https://github.com/RobDHess/Steerable-E3-GNN).
 """
 
-
 class O3TensorProduct(nn.Module):
     """A bilinear layer, computing CG tensorproduct and normalising them.
 
@@ -223,7 +222,6 @@ class O3SwishGate(torch.nn.Module):
 """
 The following class (BatchNorm) is copied and adapted from "Euclidean neural networks" on GitHub (https://github.com/e3nn/e3nn).
 """
-
 
 @compile_mode("unsupported")
 class BatchNorm(nn.Module):
