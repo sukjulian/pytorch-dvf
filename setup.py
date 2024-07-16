@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="torch_dvf",
-    version="0.3.0",
+    version="0.4.0",
     author="Julian Suk",
     author_email="j.m.suk@utwente.nl",
     license="MIT",
@@ -13,5 +13,6 @@ setup(
         "torch_scatter",
         "torch_cluster",
         "e3nn",
+        "networkx",
     ],
 )
