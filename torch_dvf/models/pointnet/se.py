@@ -54,7 +54,7 @@ def BalancedIrreps(lmax, vec_dim, sh_type=True):
     return Irreps(str_out)
 
 
-class SEPointNet(architectures.PointNet):
+class SEPointNet(architectures.PointNetBase):
     def __init__(
         self,
         input_irreps: Irreps,

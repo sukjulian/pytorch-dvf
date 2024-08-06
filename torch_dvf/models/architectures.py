@@ -4,7 +4,7 @@ from torch_dvf.data import Data
 from torch_dvf.nn.gnn import interp, pool
 
 
-class PointNet(torch.nn.Module):
+class PointNetBase(torch.nn.Module):
 
     def __init__(
         self,

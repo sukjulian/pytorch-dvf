@@ -5,7 +5,7 @@ from torch_dvf.nn.gnn import PointCloudPooling
 from torch_dvf.nn.mlp.vanilla import MLP
 
 
-class PointNet(architectures.PointNet):
+class PointNet(architectures.PointNetBase):
     def __init__(
         self,
         num_input_channels: int,
