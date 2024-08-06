@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="torch_dvf",
-    version="0.4.1",
+    version="0.5.0",
     author="Julian Suk",
     author_email="j.m.suk@utwente.nl",
     license="MIT",
