@@ -12,6 +12,7 @@ setup(
         "torch_geometric",
         "torch_scatter",
         "torch_cluster",
+        "e3nn",
         "networkx",
     ],
 )

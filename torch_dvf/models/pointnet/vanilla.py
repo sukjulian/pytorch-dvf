@@ -1,25 +1,24 @@
 import torch
 
-from .data import Data
-from .nn.gnn import PointCloudPooling, interp, pool
-from .nn.mlp import MLP
+from torch_dvf.models import architectures
+from torch_dvf.nn.gnn import PointCloudPooling
+from torch_dvf.nn.mlp.vanilla import MLP
 
 
-class PointNet(torch.nn.Module):
+class PointNet(architectures.PointNet):
     def __init__(
         self,
         num_input_channels: int,
         num_output_channels: int,
         num_hierarchies: int,
         num_latent_channels: int,
-        use_running_stats_in_norm: bool = False
+        use_running_stats_in_norm: bool = False,
     ):
-        super().__init__()
 
-        self.point_cloud_pooling_layers = torch.nn.ModuleList()
-        self.mlp_layers = torch.nn.ModuleList()
+        point_cloud_pooling_layers = torch.nn.ModuleList()
+        mlp_layers = torch.nn.ModuleList()
 
-        self.point_cloud_pooling_layers.append(
+        point_cloud_pooling_layers.append(
             PointCloudPooling(
                 MLP(
                     (num_input_channels + 3, num_latent_channels, num_latent_channels),
@@ -29,7 +28,7 @@ class PointNet(torch.nn.Module):
                 )
             )
         )
-        self.mlp_layers.insert(
+        mlp_layers.insert(
             0,
             MLP(
                 (
@@ -43,7 +42,7 @@ class PointNet(torch.nn.Module):
         )
 
         for _ in range(num_hierarchies - 1):
-            self.point_cloud_pooling_layers.append(
+            point_cloud_pooling_layers.append(
                 PointCloudPooling(
                     MLP(
                         (
@@ -56,7 +55,7 @@ class PointNet(torch.nn.Module):
                     )
                 )
             )
-            self.mlp_layers.insert(
+            mlp_layers.insert(
                 0,
                 MLP(
                     (
@@ -68,26 +67,4 @@ class PointNet(torch.nn.Module):
                 ),
             )
 
-        print(
-            f"PointNet++ ({sum(parameter.numel() for parameter in self.parameters() if parameter.requires_grad)} parameters)"
-        )
-
-    def forward(self, data: Data) -> torch.Tensor:
-        x, pos = data.x, data.pos
-
-        x_cache = []
-        pos_cache = []
-
-        for i, layer in enumerate(self.point_cloud_pooling_layers):
-            x_cache.append(x)
-            pos_cache.append(pos)
-
-            x, pos = pool(layer, x, pos, data, scale_id=i)
-
-        for layer in self.mlp_layers:
-            x = interp(
-                layer, x, x_cache.pop(), pos, pos := pos_cache.pop(), data, scale_id=i
-            )
-            i -= 1
-
-        return x
+        super().__init__(point_cloud_pooling_layers, mlp_layers)
