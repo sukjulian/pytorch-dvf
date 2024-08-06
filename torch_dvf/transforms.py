@@ -166,7 +166,7 @@ class RadiusPointCloudHierarchy(PointCloudHierarchy):
             self.__class__.__name__,
             self.rel_sampling_ratios,
             self.interp_simplex,
-            self.cluster_radii,
+            self.cluster_radii_arg,
             self.max_num_neighbors,
         )
 
