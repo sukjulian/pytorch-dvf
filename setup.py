@@ -14,5 +14,6 @@ setup(
         "torch_cluster",
         "e3nn",
         "networkx",
+        "lab_gatr @ git+https://github.com/sukjulian/lab-gatr.git",
     ],
 )
