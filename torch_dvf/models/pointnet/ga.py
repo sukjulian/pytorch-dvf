@@ -2,11 +2,11 @@ import lab_gatr.models.lab_gatr
 import torch
 
 from lab_gatr.models.lab_gatr import PointCloudPooling, interp
+from lab_gatr.nn.gnn import pool
 from lab_gatr.nn.mlp.geometric_algebra import MLP
 
 from torch_dvf.data import Data
 from torch_dvf.models import architectures
-from torch_dvf.nn.gnn import pool
 
 
 class GAPointNet(architectures.PointNetBase):
