@@ -12,7 +12,7 @@ class PointNet(architectures.PointNetBase):
         num_output_channels: int,
         num_hierarchies: int,
         num_latent_channels: int,
-        use_running_stats_in_norm: bool = False,
+        use_running_stats_in_norm: bool = True,
     ):
 
         point_cloud_pooling_layers = torch.nn.ModuleList()
