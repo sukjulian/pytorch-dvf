@@ -9,7 +9,7 @@ class MLP(torch.nn.Module):
         num_channels: tuple,
         plain_last: bool = True,
         use_norm_in_first: bool = True,
-        use_running_stats_in_norm: bool = False,
+        use_running_stats_in_norm: bool = True,
     ):
         super().__init__()
 
