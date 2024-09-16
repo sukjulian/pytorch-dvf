@@ -3,26 +3,22 @@ import torch
 from torch_geometric.nn.conv import MessagePassing
 from torch_scatter import scatter
 
-from torch_dvf.data import Data
+# Compilation performance
+torch.set_float32_matmul_precision("high")
 
 
+@torch.compile
 def pool(
     layer: MessagePassing,
     x: torch.Tensor,
     pos: torch.Tensor,
-    data: Data,
-    scale_id: int,
+    sampling_idcs: torch.Tensor,
+    pool_source: torch.Tensor,
+    pool_target: torch.Tensor,
     **kwargs,
 ) -> tuple:
-    sampling_idcs = data[f"scale{scale_id}_sampling_index"]
 
-    edge_index = torch.cat(
-        (
-            data[f"scale{scale_id}_pool_source"][None, :],
-            data[f"scale{scale_id}_pool_target"][None, :],
-        ),
-        dim=0,
-    )
+    edge_index = torch.cat((pool_source[None, :], pool_target[None, :]), dim=0)
     kwargs = {key: (value, value[sampling_idcs]) for key, value in kwargs.items()}
 
     return (
@@ -36,32 +32,30 @@ def pool(
     )
 
 
+@torch.compile
 def interp(
     mlp: torch.nn.Module,
     x: torch.Tensor,
     x_skip: torch.Tensor,
     pos_source: torch.Tensor,
     pos_target: torch.Tensor,
-    data: Data,
-    scale_id: int,
+    interp_source: torch.Tensor,
+    interp_target: torch.Tensor,
 ) -> torch.Tensor:
 
-    pos_diff = (
-        pos_source[data[f"scale{scale_id}_interp_source"]]
-        - pos_target[data[f"scale{scale_id}_interp_target"]]
-    )
+    pos_diff = pos_source[interp_source] - pos_target[interp_target]
     squared_pos_dist = torch.clamp(
         torch.sum(pos_diff**2, dim=-1, keepdim=True), min=1e-16
     )
 
     x = scatter(
-        x[data[f"scale{scale_id}_interp_source"]] / squared_pos_dist,
-        data[f"scale{scale_id}_interp_target"].long(),
+        x[interp_source] / squared_pos_dist,
+        interp_target.long(),
         dim=0,
         reduce="sum",
     ) / scatter(
         1.0 / squared_pos_dist,
-        data[f"scale{scale_id}_interp_target"].long(),
+        interp_target.long(),
         dim=0,
         reduce="sum",
     )
