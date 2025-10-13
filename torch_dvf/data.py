@@ -3,7 +3,7 @@ import torch_geometric as pyg
 
 class Data(pyg.data.Data):
     def __cat_dim__(self, key: str, value, *args, **kwargs) -> int:
-        if "index" in key or key == "face" or key == "tets" or "coo" in key:
+        if "index" in key or key == "face" or key == "tets":
             return -1
         else:
             return 0
