@@ -34,11 +34,24 @@ class PointNetBase(torch.nn.Module):
             x_cache.append(x)
             pos_cache.append(pos)
 
-            x, pos = pool(layer, x, pos, data, scale_id=i)
+            x, pos = pool(
+                layer,
+                x,
+                pos,
+                data[f"scale{i}_sampling_index"],
+                data[f"scale{i}_pool_source"],
+                data[f"scale{i}_pool_target"],
+            )
 
         for layer in self.mlp_layers:
             x = interp(
-                layer, x, x_cache.pop(), pos, pos := pos_cache.pop(), data, scale_id=i
+                layer,
+                x,
+                x_cache.pop(),
+                pos,
+                pos := pos_cache.pop(),
+                data[f"scale{i}_interp_source"],
+                data[f"scale{i}_interp_target"],
             )
             i -= 1
 
