@@ -11,7 +11,7 @@ import networkx as nx
 import torch
 import torch_geometric as pyg
 
-from torch_cluster import fps, knn, radius
+from pyg_lib.ops import fps, knn, radius
 
 from .data import Data
 
